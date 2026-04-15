@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="requirement-name" content="商品目标管理">
+<title>商品目标管理 — shuzhi</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --sh-bg:#1a1f3a;--sh-nav:#252b4a;--sh-nav2:#1e2340;
+  --sh-purple:#7c6cf8;--sh-purple2:#6c5ce7;--sh-purple-light:rgba(124,108,248,0.12);
+  --sh-text:#e8eaf0;--sh-text2:#9ba3c4;--sh-text3:#6b748a;
+  --sh-border:rgba(255,255,255,0.08);--sh-border2:rgba(255,255,255,0.12);
+  --sh-card:#252b4a;--sh-card2:#1e2340;
+  --sh-green:#00c896;--sh-red:#ff5e6c;--sh-amber:#f5a623;
+  --sh-row-hover:rgba(124,108,248,0.06);
+  --sh-input-bg:#1a1f3a;--sh-input-border:rgba(255,255,255,0.15);
+}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:13px;background:var(--sh-bg);color:var(--sh-text);line-height:1.4;overflow:hidden}
+.layout{display:flex;height:100vh;overflow:hidden}
+
+/* Sidebar */
+.sidebar{width:56px;background:var(--sh-nav);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;border-right:1px solid var(--sh-border);flex-shrink:0}
+.logo-box{width:36px;height:36px;background:linear-gradient(135deg,#7c6cf8,#a78bfa);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:11px;font-weight:700;color:#fff;letter-spacing:-0.5px}
+.nav-icon{width:44px;height:44px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:2px;color:var(--sh-text3);font-size:10px;transition:all 0.15s}
+.nav-icon:hover,.nav-icon.active{background:var(--sh-purple-light);color:var(--sh-purple)}
+.nav-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.nav-label{font-size:10px;margin-top:1px}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* Tab bar */
+.tabbar{background:var(--sh-nav);border-bottom:1px solid var(--sh-border);display:flex;align-items:stretch;padding:0 0 0 8px;height:40px;flex-shrink:0}
+.tab{display:flex;align-items:center;gap:6px;padding:0 14px;font-size:12px;color:var(--sh-text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.15s}
+.tab:hover{color:var(--sh-text2)}
+.tab.active{color:var(--sh-purple);border-bottom-color:var(--sh-purple)}
+.tab-close{width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;color:var(--sh-text3);font-size:12px;border-radius:50%}
+.tab-close:hover{background:rgba(255,255,255,0.1);color:var(--sh-text)}
+.tab-add{display:flex;align-items:center;justify-content:center;padding:0 12px;color:var(--sh-text3);cursor:pointer;font-size:18px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;padding:0 16px;flex-shrink:0}
+.user-avatar{width:26px;height:26px;border-radius:50%;background:var(--sh-purple);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff}
+
+/* Sub nav */
+.subnav{background:var(--sh-nav2);border-bottom:1px solid var(--sh-border);display:flex;align-items:center;padding:0 16px;height:38px;flex-shrink:0}
+.subtab{padding:0 16px;height:38px;display:flex;align-items:center;font-size:13px;color:var(--sh-text3);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s}
+.subtab.active{color:var(--sh-purple);border-bottom-color:var(--sh-purple);font-weight:500}
+.subtab:hover:not(.active){color:var(--sh-text2)}
+
+/* Page */
+.page{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px}
+
+/* Filter bar */
+.filter-bar{background:var(--sh-card);border:1px solid var(--sh-border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.filter-logic{display:flex;align-items:center;gap:6px;margin-right:8px;font-size:12px;color:var(--sh-text2);border-right:1px solid var(--sh-border);padding-right:12px}
+.radio-grp{display:flex;align-items:center;gap:8px}
+.radio-opt{display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px}
+input[type=radio]{accent-color:var(--sh-purple);cursor:pointer}
+.filter-items{display:flex;align-items:center;flex-wrap:wrap;gap:8px;flex:1}
+.fi{display:flex;align-items:center;gap:6px;font-size:12px}
+.fi-label{color:var(--sh-text2);white-space:nowrap}
+.fi-label-new{color:#a78bfa;white-space:nowrap}
+
+select,input[type=text],input[type=number]{
+  background:var(--sh-input-bg);border:1px solid var(--sh-input-border);border-radius:4px;
+  color:var(--sh-text);font-size:12px;padding:3px 8px;height:28px;outline:none;font-family:inherit;
+  -webkit-appearance:none;appearance:none;
+}
+select{padding-right:22px;
+  background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239ba3c4' stroke-width='1.2'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 7px center;cursor:pointer}
+select:focus,input:focus{border-color:var(--sh-purple)}
+input::placeholder{color:var(--sh-text3)}
+.sel-sm{width:110px}.sel-md{width:140px}.inp-sm{width:90px}.inp-search{width:150px}
+
+/* Currency group */
+.currency-grp{display:flex;border:1px solid var(--sh-border2);border-radius:4px;overflow:hidden}
+.cur-btn{padding:3px 8px;font-size:11px;cursor:pointer;color:var(--sh-text3);background:transparent;border:none;font-family:inherit;transition:all 0.15s}
+.cur-btn.active{background:var(--sh-purple);color:#fff}
+.cur-btn:hover:not(.active){color:var(--sh-text2)}
+
+/* Date bar */
+.date-bar{font-size:11px;color:var(--sh-purple);background:var(--sh-purple-light);padding:5px 12px;border-radius:4px;display:flex;align-items:center;gap:6px;border:1px solid rgba(124,108,248,0.2)}
+
+/* Buttons */
+.btn{height:28px;padding:0 12px;border-radius:4px;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;border:1px solid transparent;transition:all 0.15s;font-family:inherit;white-space:nowrap}
+.btn-primary{background:var(--sh-purple);color:#fff;border-color:var(--sh-purple)}
+.btn-primary:hover{background:#8d7ef9}
+.btn-ghost{background:transparent;color:var(--sh-text2);border-color:var(--sh-border2)}
+.btn-ghost:hover{color:var(--sh-purple);border-color:var(--sh-purple)}
+
+/* Bulk toolbar */
+.bulk-bar{background:rgba(124,108,248,0.1);border:1px solid rgba(124,108,248,0.25);border-radius:6px;padding:7px 12px;display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:12px}
+.bulk-info{color:var(--sh-purple);font-weight:500}
+.bulk-sep{width:1px;height:14px;background:rgba(124,108,248,0.3);flex-shrink:0}
+
+/* Toolbar */
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.toolbar-left{display:flex;align-items:center;gap:8px}
+
+/* Table */
+.tbl-wrap{background:var(--sh-card);border:1px solid var(--sh-border);border-radius:8px;overflow:hidden;flex-shrink:0}
+.tbl-scroll{overflow-x:auto;max-height:calc(100vh - 340px)}
+table{width:100%;border-collapse:collapse;min-width:1600px}
+thead th{background:rgba(255,255,255,0.03);padding:9px 10px;text-align:left;font-weight:500;font-size:12px;color:var(--sh-text2);border-bottom:1px solid var(--sh-border);white-space:nowrap;position:sticky;top:0;z-index:2}
+thead th:first-child{width:40px;text-align:center;padding:9px 8px}
+thead th.sticky-right{position:sticky;right:0;background:#252b4a;z-index:3}
+tbody td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;color:var(--sh-text);vertical-align:middle;white-space:nowrap}
+tbody td:first-child{text-align:center;width:40px}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--sh-row-hover)}
+tbody td.sticky-right{position:sticky;right:0;background:#252b4a}
+tbody tr:hover td.sticky-right{background:#2a3158}
+input[type=checkbox]{accent-color:var(--sh-purple);cursor:pointer;width:14px;height:14px}
+
+.th-sort{display:inline-flex;align-items:center;gap:3px;cursor:pointer;user-select:none}
+.th-sort:hover{color:var(--sh-text)}
+
+/* Cell */
+.cell-asin{color:var(--sh-purple);cursor:pointer}
+.cell-asin:hover{text-decoration:underline}
+.asin-img{width:32px;height:32px;border-radius:4px;background:rgba(124,108,248,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;color:var(--sh-purple)}
+.asin-cell{display:flex;align-items:center;gap:8px}
+.asin-sub{font-size:11px;color:var(--sh-text3);margin-top:2px}
+.tag{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:11px;white-space:nowrap;font-weight:500}
+.tag-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.tag-green{background:rgba(0,200,150,0.12);color:#00c896}
+.tag-green .tag-dot{background:#00c896}
+.tag-amber{background:rgba(245,166,35,0.12);color:#f5a623}
+.tag-amber .tag-dot{background:#f5a623}
+.tag-red{background:rgba(255,94,108,0.12);color:#ff5e6c}
+.tag-red .tag-dot{background:#ff5e6c}
+.tag-purple{background:rgba(124,108,248,0.12);color:#a78bfa}
+.tag-purple .tag-dot{background:#a78bfa}
+.tag-gray{background:rgba(255,255,255,0.06);color:var(--sh-text3)}
+.tag-gray .tag-dot{background:var(--sh-text3)}
+.pct::after{content:'%';font-size:10px;margin-left:1px;color:var(--sh-text3)}
+.goal-empty{color:var(--sh-text3);font-size:11px}
+
+/* Tooltip */
+.tt-wrap{position:relative;display:inline-flex;align-items:center;gap:3px}
+.tt-icon{width:13px;height:13px;border-radius:50%;background:var(--sh-text3);color:#1a1f3a;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:help;flex-shrink:0}
+.tt-box{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1e2340;border:1px solid var(--sh-border2);color:var(--sh-text2);font-size:11px;padding:8px 10px;border-radius:6px;width:240px;white-space:normal;line-height:1.5;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,0.4)}
+.tt-box::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1e2340}
+.tt-wrap:hover .tt-box{display:block}
+
+/* Op cell */
+.op-cell{display:flex;align-items:center;gap:0;white-space:nowrap}
+.op-btn{color:var(--sh-purple);background:none;border:none;font-size:12px;cursor:pointer;font-family:inherit;padding:3px 6px;border-radius:3px}
+.op-btn:hover{background:var(--sh-purple-light)}
+.op-sep{color:var(--sh-text3);padding:0 1px;font-size:11px}
+.op-more{color:var(--sh-text3);background:none;border:none;font-size:13px;cursor:pointer;padding:3px 4px;border-radius:3px;font-family:inherit}
+.op-more:hover{background:rgba(255,255,255,0.06);color:var(--sh-text2)}
+
+/* Pagination */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--sh-border);font-size:12px;color:var(--sh-text3);flex-shrink:0}
+.page-btns{display:flex;align-items:center;gap:4px}
+.pg-btn{min-width:28px;height:28px;border:1px solid var(--sh-border);border-radius:4px;background:transparent;color:var(--sh-text2);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 6px;font-family:inherit;transition:all 0.15s}
+.pg-btn:hover:not([disabled]){border-color:var(--sh-purple);color:var(--sh-purple)}
+.pg-btn.active{background:var(--sh-purple);color:#fff;border-color:var(--sh-purple)}
+.pg-btn[disabled]{opacity:0.35;cursor:not-allowed}
+
+/* Modal */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:500;display:none;align-items:center;justify-content:center}
+.modal-mask.open{display:flex}
+.modal{background:#252b4a;border:1px solid var(--sh-border2);border-radius:10px;width:480px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,0.5)}
+.modal-sm{width:420px}
+.modal-hd{padding:16px 20px 12px;border-bottom:1px solid var(--sh-border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-title{font-size:15px;font-weight:600;color:var(--sh-text)}
+.modal-x{width:26px;height:26px;border-radius:50%;background:none;border:none;color:var(--sh-text3);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;line-height:1}
+.modal-x:hover{background:rgba(255,255,255,0.08);color:var(--sh-text)}
+.modal-body{padding:16px 20px;overflow-y:auto;flex:1}
+.modal-ft{padding:12px 20px;border-top:1px solid var(--sh-border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+
+/* Modal form */
+.asin-info-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid var(--sh-border)}
+.asin-info-id{color:var(--sh-purple);font-weight:500;font-size:13px}
+.asin-info-sub{font-size:11px;color:var(--sh-text3);margin-top:2px}
+.curr-box{background:rgba(255,255,255,0.04);border:1px solid var(--sh-border);border-radius:6px;padding:10px 12px;margin-bottom:14px}
+.curr-box-title{font-size:11px;color:var(--sh-text3);margin-bottom:8px}
+.curr-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.curr-row{font-size:12px;color:var(--sh-text2)}
+.curr-val{color:var(--sh-text);font-weight:500}
+.form-section-label{font-size:12px;font-weight:600;color:var(--sh-text2);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.form-section-label::before{content:'';width:3px;height:13px;background:var(--sh-purple);border-radius:2px;display:block;flex-shrink:0}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-item{margin-bottom:14px}
+.form-item:last-child{margin-bottom:0}
+.form-label{font-size:12px;color:var(--sh-text2);margin-bottom:5px;display:flex;align-items:center;gap:3px}
+.required{color:var(--sh-red)}
+.form-input{width:100%;height:32px}
+.form-select{width:100%;height:32px}
+.input-unit{display:flex;align-items:center}
+.input-unit input{border-radius:4px 0 0 4px;flex:1;min-width:0}
+.unit-label{height:32px;padding:0 10px;background:rgba(255,255,255,0.05);border:1px solid var(--sh-input-border);border-left:none;border-radius:0 4px 4px 0;font-size:12px;color:var(--sh-text3);display:flex;align-items:center;white-space:nowrap;flex-shrink:0}
+.modal-notice{background:rgba(124,108,248,0.08);border:1px solid rgba(124,108,248,0.2);border-radius:5px;padding:8px 10px;font-size:11px;color:var(--sh-text3);margin-bottom:14px;line-height:1.5}
+.modal-notice strong{color:var(--sh-purple)}
+
+/* New field header colors */
+.th-new{color:#a78bfa !important}
+.th-goal{color:#34d399 !important}
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo-box">shu</div>
+    <div class="nav-icon">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span class="nav-label">数据</span>
+    </div>
+    <div class="nav-icon">
+      <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      <span class="nav-label">广告</span>
+    </div>
+    <div class="nav-icon active">
+      <svg viewBox="0 0 24 24"><rect x="2" y="2" width="9" height="11" rx="1.5"/><rect x="13" y="2" width="9" height="7" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/><rect x="2" y="17" width="9" height="5" rx="1.5"/></svg>
+      <span class="nav-label">商品</span>
+    </div>
+    <div class="nav-icon">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span class="nav-label">AMC</span>
+    </div>
+    <div class="nav-icon">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+      <span class="nav-label">店铺</span>
+    </div>
+    <div class="nav-icon">
+      <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+      <span class="nav-label">品牌</span>
+    </div>
+    <div class="nav-icon">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="nav-label">用户</span>
+    </div>
+    <div class="nav-icon">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+      <span class="nav-label">工具</span>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Tab bar -->
+    <div class="tabbar">
+      <div class="tab">广告活动</div>
+      <div class="tab">标签管理(内部)</div>
+      <div class="tab">广告管理</div>
+      <div class="tab active">商品概览 <span class="tab-close">×</span></div>
+      <div class="tab-add">+</div>
+      <div class="topbar-right">
+        <select class="sel-md" style="height:26px;font-size:11px"><option>广告账户</option></select>
+        <span style="font-size:11px;color:var(--sh-text3)">2026-03-16 → 2026-04-14</span>
+        <div class="user-avatar">杨</div>
+        <span style="font-size:12px;color:var(--sh-text2)">杨修瑛</span>
+      </div>
+    </div>
+
+    <!-- Sub nav -->
+    <div class="subnav">
+      <div class="subtab">父ASIN</div>
+      <div class="subtab active">子ASIN</div>
+    </div>
+
+    <!-- Page -->
+    <div class="page">
+
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <div class="filter-logic">
+          <span style="font-size:11px;color:var(--sh-text3)">筛选逻辑：</span>
+          <div class="radio-grp">
+            <label class="radio-opt"><input type="radio" name="logic" value="and"> 且</label>
+            <label class="radio-opt"><input type="radio" name="logic" value="or" checked> 或</label>
+          </div>
+        </div>
+        <button class="btn-ghost btn" style="height:24px;font-size:11px;padding:0 8px">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          隐藏侧栏
+        </button>
+        <div class="filter-items">
+          <div class="fi"><span class="fi-label">负责人</span><select class="sel-md"><option value="">全部</option><option>朱旭峰</option></select></div>
+          <div class="fi"><span class="fi-label">父ASIN</span><select class="sel-sm"><option>父ASIN</option></select></div>
+          <div class="fi"><input class="inp-search" type="text" placeholder="请输入"></div>
+          <!-- 新增：生命周期筛选 -->
+          <div class="fi">
+            <span class="fi-label-new">生命周期</span>
+            <select class="sel-md" style="border-color:rgba(167,139,250,0.4)">
+              <option value="">不限制（默认）</option>
+              <option>导入期</option>
+              <option>成长期</option>
+              <option>成熟期</option>
+              <option>衰退期</option>
+              <option>清仓期</option>
+            </select>
+          </div>
+          <div class="currency-grp">
+            <button class="cur-btn active">人民币</button>
+            <button class="cur-btn">美元</button>
+            <button class="cur-btn">本币</button>
+          </div>
+          <button class="btn btn-ghost" style="height:26px;font-size:11px">请选择筛选模版</button>
+          <button class="btn btn-primary" style="height:26px">重置</button>
+        </div>
+      </div>
+
+      <!-- Date bar -->
+      <div class="date-bar">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        时间段：2026-03-16 ~ 2026-04-14，对比周期：2026-02-14 ~ 2026-03-15 &nbsp;|&nbsp; 币种：人民币
+      </div>
+
+      <!-- Bulk toolbar -->
+      <div class="bulk-bar" id="bulkBar" style="display:none">
+        <span class="bulk-info" id="bulkCount">已选 0 条</span>
+        <div class="bulk-sep"></div>
+        <button class="btn btn-ghost" style="height:26px" onclick="openModal('batchAcos')">批量编辑目标ACOS</button>
+        <button class="btn btn-ghost" style="height:26px" onclick="openModal('batchLifecycle')">修改商品生命周期</button>
+        <button class="btn btn-ghost" style="height:26px" onclick="openModal('batchAcosLimit')">批量编辑ACOS上限</button>
+        <button class="btn btn-ghost" style="height:26px" onclick="openModal('batchCvr')">批量编辑CVR及格线</button>
+        <button class="btn btn-ghost" style="height:26px" onclick="openModal('batchBudget')">批量编辑预算上限</button>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <button class="btn btn-ghost">编辑标签</button>
+          <button class="btn btn-ghost">跳转广告管理</button>
+        </div>
+        <div>
+          <button class="btn btn-ghost" style="font-size:11px;height:26px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            列配置
+          </button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="tbl-wrap">
+        <div class="tbl-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="checkAll" onchange="toggleAll(this)"></th>
+                <th>父ASIN</th>
+                <th>站点店铺</th>
+                <th>品牌</th>
+                <th>品类</th>
+                <th>广告负责人</th>
+                <th class="th-new"><span class="th-sort">建议目标ACOS ↕</span></th>
+                <th class="th-new">运营状态</th>
+                <th class="th-new"><span class="th-sort">FBA入库天数 ↕</span></th>
+                <th class="th-new"><span class="th-sort">评分数 ↕</span></th>
+                <th class="th-new"><span class="th-sort">评分 ↕</span></th>
+                <th class="th-new"><span class="th-sort">动销率 ↕</span></th>
+                <th class="th-new"><span class="th-sort">日均订单量 ↕</span></th>
+                <th class="th-new"><span class="th-sort">自然订单占比 ↕</span></th>
+                <th class="th-new">
+                  <span class="tt-wrap">出单对象数量
+                    <span class="tt-icon">?</span>
+                    <span class="tt-box">对应周期内该链接为最大花费父asin对应的广告活动下搜索词品出单≥3的数量</span>
+                  </span>
+                </th>
+                <th class="th-new">
+                  <span class="tt-wrap">高出单对象数量
+                    <span class="tt-icon">?</span>
+                    <span class="tt-box">对应周期内该链接为最大花费父asin对应的广告活动下搜索词品出单≥3的数量</span>
+                  </span>
+                </th>
+                <th class="th-new">原生命周期</th>
+                <th class="th-new">生命周期</th>
+                <th class="th-goal">目标ACOS</th>
+                <th class="th-goal">ACOS上限</th>
+                <th class="th-goal">CVR及格线</th>
+                <th class="th-goal">预算上限</th>
+                <th>标签</th>
+                <th class="sticky-right">操作</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span>共 128 条</span>
+            <select style="height:26px;font-size:11px;width:90px"><option>20 条/页</option><option>50 条/页</option><option>100 条/页</option></select>
+          </div>
+          <div class="page-btns">
+            <button class="pg-btn" disabled>«</button>
+            <button class="pg-btn" disabled>‹</button>
+            <button class="pg-btn active">1</button>
+            <button class="pg-btn">2</button>
+            <button class="pg-btn">3</button>
+            <span style="color:var(--sh-text3);padding:0 4px">…</span>
+            <button class="pg-btn">7</button>
+            <button class="pg-btn">›</button>
+            <button class="pg-btn">»</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- ===== MODALS ===== -->
+
+<!-- 编辑（合并：商品目标 + 生命周期）-->
+<div class="modal-mask" id="modal-editSingle">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title">编辑</span>
+      <button class="modal-x" onclick="closeModal('editSingle')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="asin-info-row">
+        <div class="asin-img">图</div>
+        <div>
+          <div class="asin-info-id" id="editAsin">-</div>
+          <div class="asin-info-sub" id="editShop">-</div>
+        </div>
+      </div>
+      <div class="curr-box">
+        <div class="curr-box-title">当前配置（回显）</div>
+        <div class="curr-grid">
+          <div class="curr-row">目标ACOS：<span class="curr-val" id="currGoalAcos">-</span></div>
+          <div class="curr-row">ACOS上限：<span class="curr-val" id="currAcosLimit">-</span></div>
+          <div class="curr-row">CVR及格线：<span class="curr-val" id="currCvr">-</span></div>
+          <div class="curr-row">预算上限：<span class="curr-val" id="currBudget">-</span></div>
+          <div class="curr-row">原生命周期：<span class="curr-val" id="currOrigLc">-</span></div>
+          <div class="curr-row">当前生命周期：<span class="curr-val" id="currLc" style="color:var(--sh-green)">-</span></div>
+        </div>
+      </div>
+      <div class="form-section-label">商品目标设置</div>
+      <div class="form-row-2">
+        <div class="form-item">
+          <label class="form-label">目标ACOS <span class="required">*</span></label>
+          <div class="input-unit"><input class="form-input" type="number" id="inputGoalAcos" placeholder="请输入"><span class="unit-label">%</span></div>
+        </div>
+        <div class="form-item">
+          <label class="form-label">ACOS上限</label>
+          <div class="input-unit"><input class="form-input" type="number" id="inputAcosLimit" placeholder="请输入"><span class="unit-label">%</span></div>
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-item">
+          <label class="form-label">CVR及格线</label>
+          <div class="input-unit"><input class="form-input" type="number" id="inputCvr" placeholder="请输入"><span class="unit-label">%</span></div>
+        </div>
+        <div class="form-item">
+          <label class="form-label">预算上限</label>
+          <div class="input-unit"><input class="form-input" type="number" id="inputBudget" placeholder="请输入"><span class="unit-label">¥</span></div>
+        </div>
+      </div>
+      <div class="form-divider" style="height:1px;background:var(--sh-border);margin:4px 0 14px"></div>
+      <div class="form-section-label">生命周期</div>
+      <div class="form-item">
+        <label class="form-label">修改为</label>
+        <select class="form-select" id="selectNewLc">
+          <option value="">请选择</option>
+          <option>导入期</option><option>成长期</option><option>成熟期</option><option>衰退期</option><option>清仓期</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('editSingle')">取消</button>
+      <button class="btn btn-primary">确认保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批量编辑目标ACOS -->
+<div class="modal-mask" id="modal-batchAcos">
+  <div class="modal modal-sm">
+    <div class="modal-hd">
+      <span class="modal-title">批量编辑目标ACOS</span>
+      <button class="modal-x" onclick="closeModal('batchAcos')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-notice">已选 <strong id="batchAcosCount">0</strong> 条商品，所有配置项均需重新填写</div>
+      <div class="form-item">
+        <label class="form-label">目标ACOS <span class="required">*</span></label>
+        <div class="input-unit"><input class="form-input" type="number" placeholder="请输入目标ACOS"><span class="unit-label">%</span></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('batchAcos')">取消</button>
+      <button class="btn btn-primary">确认批量保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批量修改生命周期 -->
+<div class="modal-mask" id="modal-batchLifecycle">
+  <div class="modal modal-sm">
+    <div class="modal-hd">
+      <span class="modal-title">批量修改商品生命周期</span>
+      <button class="modal-x" onclick="closeModal('batchLifecycle')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-notice">已选 <strong id="batchLcCount">0</strong> 条商品，所有配置项均需重新选择</div>
+      <div class="form-item">
+        <label class="form-label">生命周期</label>
+        <select class="form-select"><option value="">请选择</option><option>导入期</option><option>成长期</option><option>成熟期</option><option>衰退期</option><option>清仓期</option></select>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('batchLifecycle')">取消</button>
+      <button class="btn btn-primary">确认批量修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批量编辑ACOS上限 -->
+<div class="modal-mask" id="modal-batchAcosLimit">
+  <div class="modal modal-sm">
+    <div class="modal-hd">
+      <span class="modal-title">批量编辑ACOS上限</span>
+      <button class="modal-x" onclick="closeModal('batchAcosLimit')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-notice">已选 <strong id="batchAlCount">0</strong> 条商品，所有配置项均需重新填写</div>
+      <div class="form-item">
+        <label class="form-label">ACOS上限</label>
+        <div class="input-unit"><input class="form-input" type="number" placeholder="请输入ACOS上限"><span class="unit-label">%</span></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('batchAcosLimit')">取消</button>
+      <button class="btn btn-primary">确认批量保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批量编辑CVR及格线 -->
+<div class="modal-mask" id="modal-batchCvr">
+  <div class="modal modal-sm">
+    <div class="modal-hd">
+      <span class="modal-title">批量编辑CVR及格线</span>
+      <button class="modal-x" onclick="closeModal('batchCvr')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-notice">已选 <strong id="batchCvrCount">0</strong> 条商品，所有配置项均需重新填写</div>
+      <div class="form-item">
+        <label class="form-label">CVR及格线</label>
+        <div class="input-unit"><input class="form-input" type="number" placeholder="请输入CVR及格线"><span class="unit-label">%</span></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('batchCvr')">取消</button>
+      <button class="btn btn-primary">确认批量保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批量编辑预算上限 -->
+<div class="modal-mask" id="modal-batchBudget">
+  <div class="modal modal-sm">
+    <div class="modal-hd">
+      <span class="modal-title">批量编辑预算上限</span>
+      <button class="modal-x" onclick="closeModal('batchBudget')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-notice">已选 <strong id="batchBgCount">0</strong> 条商品，所有配置项均需重新填写</div>
+      <div class="form-item">
+        <label class="form-label">预算上限</label>
+        <div class="input-unit"><input class="form-input" type="number" placeholder="请输入预算上限"><span class="unit-label">¥</span></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('batchBudget')">取消</button>
+      <button class="btn btn-primary">确认批量保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const rows=[
+  {id:'B0FY4Z14ZT',shop:'业马逊欧洲站Erzto',site:'荷兰',brand:'-',cat:'Fashion>Sport Specific Clothing...',owner:'-',recAcos:18.5,status:'正常运营',fba:32,reviews:856,rating:4.3,turnover:78.2,dailyOrder:42,naturalPct:35.6,outUnit:12,highOut:5,origLc:'成长期',lc:'成熟期',goalAcos:18,acosLimit:25,cvr:12,budget:500},
+  {id:'B09DTZLBSG',shop:'亚马逊Realipopo',site:'墨西哥',brand:'-',cat:'Ropa, Zapatos y Accesorios>Mu...',owner:'-',recAcos:22.1,status:'暂停推广',fba:18,reviews:312,rating:3.8,turnover:52.4,dailyOrder:18,naturalPct:28.3,outUnit:7,highOut:2,origLc:'导入期',lc:'成长期',goalAcos:null,acosLimit:null,cvr:null,budget:null},
+  {id:'B0GMG29MVF',shop:'亚马逊Cicy Bell',site:'墨西哥',brand:'-',cat:'Ropa, Zapatos y Accesorios>Mu...',owner:'-',recAcos:15.8,status:'正常运营',fba:45,reviews:2341,rating:4.7,turnover:91.5,dailyOrder:87,naturalPct:42.1,outUnit:23,highOut:11,origLc:'成熟期',lc:'成熟期',goalAcos:15,acosLimit:22,cvr:15,budget:800},
+  {id:'B09H2F59CQ',shop:'吾在行亚马逊FLYer',site:'墨西哥',brand:'-',cat:'Ropa, Zapatos y Accesorios>Mu...',owner:'朱旭峰',recAcos:28.3,status:'清仓处理',fba:8,reviews:145,rating:3.2,turnover:31.7,dailyOrder:9,naturalPct:18.5,outUnit:3,highOut:1,origLc:'成熟期',lc:'衰退期',goalAcos:30,acosLimit:40,cvr:8,budget:200},
+  {id:'B0BNK9Z59P',shop:'亚马逊tinqyuan',site:'美国',brand:'-',cat:'Home & Kitchen>Storage...',owner:'-',recAcos:12.4,status:'正常运营',fba:28,reviews:4521,rating:4.5,turnover:85.3,dailyOrder:156,naturalPct:51.2,outUnit:38,highOut:17,origLc:'成长期',lc:'成熟期',goalAcos:12,acosLimit:18,cvr:18,budget:1200},
+];
+
+const statusCls={正常运营:'tag-green',暂停推广:'tag-amber',清仓处理:'tag-red'};
+const lcCls={导入期:'tag-gray',成长期:'tag-purple',成熟期:'tag-green',衰退期:'tag-amber',衰退期:'tag-amber',清仓期:'tag-red'};
+
+function renderRows(){
+  document.getElementById('tbody').innerHTML=rows.map((r,i)=>`
+    <tr>
+      <td><input type="checkbox" class="row-cb" data-i="${i}" onchange="onCheck()"></td>
+      <td><div class="asin-cell"><div class="asin-img">图</div><div><div class="cell-asin">${r.id}</div><div class="asin-sub">ASIN:1 SKU:1</div></div></div></td>
+      <td><div>店铺：${r.shop}</div><div class="asin-sub">站点：${r.site}</div></td>
+      <td>${r.brand}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${r.cat}</td>
+      <td>${r.owner}</td>
+      <td><span class="pct">${r.recAcos.toFixed(1)}</span></td>
+      <td><span class="tag ${statusCls[r.status]||'tag-gray'}"><span class="tag-dot"></span>${r.status}</span></td>
+      <td>${r.fba}</td>
+      <td>${r.reviews.toLocaleString()}</td>
+      <td>${r.rating.toFixed(2)}</td>
+      <td><span class="pct">${r.turnover.toFixed(1)}</span></td>
+      <td>${r.dailyOrder}</td>
+      <td><span class="pct">${r.naturalPct.toFixed(1)}</span></td>
+      <td>${r.outUnit}</td>
+      <td>${r.highOut}</td>
+      <td style="color:var(--sh-text3);font-size:11px">${r.origLc}</td>
+      <td><span class="tag ${lcCls[r.lc]||'tag-gray'}"><span class="tag-dot"></span>${r.lc}</span></td>
+      <td>${r.goalAcos!=null?'<span class="pct">'+r.goalAcos+'</span>':'<span class="goal-empty">未设置</span>'}</td>
+      <td>${r.acosLimit!=null?'<span class="pct">'+r.acosLimit+'</span>':'-'}</td>
+      <td>${r.cvr!=null?'<span class="pct">'+r.cvr+'</span>':'-'}</td>
+      <td>${r.budget!=null?'¥'+r.budget:'-'}</td>
+      <td>-</td>
+      <td class="sticky-right"><div class="op-cell"><button class="op-btn" onclick="openEditModal(${i})">编辑</button><span class="op-sep">|</span><button class="op-more">···</button></div></td>
+    </tr>
+  `).join('');
+}
+renderRows();
+
+function onCheck(){
+  const n=document.querySelectorAll('.row-cb:checked').length;
+  document.getElementById('bulkBar').style.display=n>0?'flex':'none';
+  document.getElementById('bulkCount').textContent='已选 '+n+' 条';
+}
+function toggleAll(el){document.querySelectorAll('.row-cb').forEach(c=>c.checked=el.checked);onCheck();}
+
+function getCheckedCount(){return document.querySelectorAll('.row-cb:checked').length;}
+
+function openEditModal(i){
+  const r=rows[i];
+  document.getElementById('editAsin').textContent=r.id;
+  document.getElementById('editShop').textContent=r.shop+' | '+r.site;
+  document.getElementById('currGoalAcos').textContent=r.goalAcos!=null?r.goalAcos+'%':'未设置';
+  document.getElementById('currAcosLimit').textContent=r.acosLimit!=null?r.acosLimit+'%':'-';
+  document.getElementById('currCvr').textContent=r.cvr!=null?r.cvr+'%':'-';
+  document.getElementById('currBudget').textContent=r.budget!=null?'¥'+r.budget:'-';
+  document.getElementById('currOrigLc').textContent=r.origLc;
+  document.getElementById('currLc').textContent=r.lc;
+  document.getElementById('inputGoalAcos').value=r.goalAcos||'';
+  document.getElementById('inputAcosLimit').value=r.acosLimit||'';
+  document.getElementById('inputCvr').value=r.cvr||'';
+  document.getElementById('inputBudget').value=r.budget||'';
+  document.getElementById('selectNewLc').value='';
+  openModal('editSingle');
+}
+
+function openModal(type){
+  const n=getCheckedCount();
+  ['batchAcosCount','batchLcCount','batchAlCount','batchCvrCount','batchBgCount'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.textContent=n;
+  });
+  document.getElementById('modal-'+type).classList.add('open');
+}
+function closeModal(type){document.getElementById('modal-'+type).classList.remove('open');}
+
+document.querySelectorAll('.modal-mask').forEach(mask=>{
+  mask.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
+});
+</script>
+</body>
+</html>
