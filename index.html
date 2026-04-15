@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>fenghuoad — 原型导航</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#1a1f3a;color:#e8eaf0;min-height:100vh;padding:40px 24px}
+.header{max-width:800px;margin:0 auto 32px}
+h1{font-size:22px;font-weight:700;color:#e8eaf0;margin-bottom:6px}
+.subtitle{font-size:13px;color:#9ba3c4}
+.grid{max-width:800px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.card{background:#252b4a;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:18px 20px;text-decoration:none;display:block;transition:all 0.15s}
+.card:hover{border-color:#7c6cf8;background:#2a3158}
+.card-title{font-size:14px;font-weight:600;color:#e8eaf0;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(124,108,248,0.15);color:#a78bfa}
+.badge-anno{background:rgba(250,173,20,0.15);color:#faad14}
+.card-desc{font-size:12px;color:#9ba3c4;line-height:1.5}
+.card-meta{margin-top:10px;font-size:11px;color:#6b748a;display:flex;align-items:center;gap:12px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📐 fenghuoad 原型库</h1>
+  <div class="subtitle">PM需求原型 · 高保真 · 带标注</div>
+</div>
+<div class="grid">
+  <a class="card" href="product-target-management.html">
+    <div class="card-title">商品目标管理 <span class="badge">原型</span></div>
+    <div class="card-desc">商品概览页子ASIN视图 — 生命周期筛选 / 字段扩充 / 编辑弹窗合并 / 批量操作</div>
+    <div class="card-meta"><span>v1.0</span><span>2026-04-15</span></div>
+  </a>
+  <a class="card" href="product-target-management-annotated.html">
+    <div class="card-title">商品目标管理 <span class="badge badge-anno">标注版</span></div>
+    <div class="card-desc">含4处功能标注浮窗，覆盖 F001~F004 完整需求 · Hover角标查看PRD详情 · 支持拖拽</div>
+    <div class="card-meta"><span>4 个标注点</span><span>2026-04-15</span></div>
+  </a>
+</div>
+</body>
+</html>
