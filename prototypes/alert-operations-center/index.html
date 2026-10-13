@@ -272,7 +272,7 @@
                 <div class="rule-filter" data-rule-filter="type" data-mode="multiple"><button type="button" onclick="toggleRuleFilter(this)"><span>规则类型</span><span>⌄</span></button><div class="rule-filter-panel"><button class="rule-option" data-value="广告效能" onclick="toggleRuleMultiOption(event,'types','广告效能')"><i class="option-mark"></i>广告效能</button><button class="rule-option" data-value="库存管理" onclick="toggleRuleMultiOption(event,'types','库存管理')"><i class="option-mark"></i>库存管理</button><button class="rule-option" data-value="销售前端" onclick="toggleRuleMultiOption(event,'types','销售前端')"><i class="option-mark"></i>销售前端</button></div></div>
                 <button class="btn ghost small" onclick="resetRuleFilters()">重置</button><span class="toolbar-spacer"></span><span class="rule-filter-count" id="ruleFilterCount">共 0 条规则</span>
               </div><div class="filter-row" data-feature-id="F018"><div class="batch-action" id="ruleBatchAction"><button class="btn small" id="ruleBatchActionButton" onclick="toggleRuleBatchAction(this)" disabled>批量操作 <span>⌄</span></button><div class="batch-action-menu"><button onclick="batchEnableRules()">批量开启</button><button onclick="openRuleActionModal('pause')">批量暂停</button><button onclick="openRuleActionModal('archive')">批量归档</button></div></div><span class="selected-tip" id="ruleSelectedTip">已选择 0 条（当前页）</span></div></div>
-              <div class="table-wrap"><table class="data-table rules-table"><thead><tr><th style="width:38px"><input type="checkbox" class="checkbox" id="ruleCheckAll" onclick="toggleAllRules(this)" aria-label="选择当前页全部规则"></th><th>状态</th><th>规则名称</th><th>预警对象</th><th title="系统规则：租户下生效；个人规则：仅在个人业务范围内生效">规则分类 ⓘ</th><th>级别</th><th>规则类型</th><th title="每小时整点；每天按日调度时间；每周按指定星期；每月按指定日期。统一使用北京时间">频率 ⓘ</th><th>最近运行时间</th><th>创建者</th><th>操作</th></tr></thead><tbody id="ruleTableBody"></tbody></table></div><div class="pager"><span id="rulePagerText">共 0 条规则</span><div class="pages"><button class="page-btn active">1</button></div></div>
+              <div class="table-wrap"><table class="data-table rules-table"><thead><tr><th style="width:38px"><input type="checkbox" class="checkbox" id="ruleCheckAll" onclick="toggleAllRules(this)" aria-label="选择当前页全部规则"></th><th>状态</th><th>规则名称</th><th>预警对象</th><th title="系统规则：租户下生效；个人规则：仅在个人业务范围内生效">规则分类 ⓘ</th><th>级别</th><th>规则类型</th><th title="每小时自动整点执行；每天、每周、每月按所选时间执行，默认08:00，可选08:00–23:00整点。统一使用北京时间">频率 ⓘ</th><th>最近运行时间</th><th>创建者</th><th>操作</th></tr></thead><tbody id="ruleTableBody"></tbody></table></div><div class="pager"><span id="rulePagerText">共 0 条规则</span><div class="pages"><button class="page-btn active">1</button></div></div>
             </section>
           </section>
 
@@ -309,6 +309,7 @@
                     <div class="form-grid">
                       <div class="field" data-feature-id="F020"><label class="required">规则频率</label><div id="ruleFrequencyControl"></div><div class="hint" id="ruleFrequencyEligibilityHint">仅当预警条件包含小时级字段时，才可选择每小时。</div></div>
                       <div class="field hidden" id="ruleScheduleDetail" data-feature-id="F020"><label class="required" id="ruleScheduleDetailLabel">执行星期</label><div id="ruleScheduleDetailControl"></div><div class="hint" id="ruleScheduleDetailHint"></div></div>
+                      <div class="field" id="ruleScheduleTime" data-feature-id="F020"><label class="required">执行时间</label><div id="ruleScheduleTimeControl"></div><div class="hint">默认 08:00，可选 08:00–23:00 整点（含 08:00），按北京时间执行。</div></div>
                     </div>
                     <div class="info-strip" id="scheduleHint" style="margin:0"><span>◷</span><span>规则按基本信息中设置的频率执行；各指标保留自己的数据时间范围与截止时间。</span></div>
                   </div>
@@ -540,7 +541,7 @@
       "pageIds": [
         "P003"
       ],
-      "summary": "独立第3模块，位于预警条件之后、试运行与启用之前；每小时/每天/每周/每月必填默认每天，仅已配置明确小时级字段时启用每小时，移除最后一个小时级字段后恢复每天并提示；周频默认周一，月频默认1号，短月按月末执行。"
+      "summary": "独立第3模块，位于预警条件之后、试运行与启用之前；每小时/每天/每周/每月必填默认每天，仅已配置明确小时级字段时启用每小时，移除最后一个小时级字段后恢复每天并提示；每小时自动整点执行，无需选择时间；每天、每周、每月均通过自定义单选下拉框配置执行时间，默认北京时间08:00，可选08:00–23:00整点（含08:00），不使用浏览器原生控件；周频默认周一，月频默认1号，短月按月末执行。"
     }
   ]
 }
@@ -571,12 +572,14 @@
     const DAY_MS = 86400000;
     const FREQUENCY_LABELS = {hourly:'每小时',daily:'每天',weekly:'每周',monthly:'每月'};
     const WEEK_LABELS = ['周日','周一','周二','周三','周四','周五','周六'];
-    let ruleSchedule = {frequency:'daily',weekDay:1,monthDay:1};
+    const EXECUTION_HOURS = Array.from({length:16},(_,i)=>i+8);
+    const hourLabel = hour => `${String(hour).padStart(2,'0')}:00`;
+    let ruleSchedule = {frequency:'daily',weekDay:1,monthDay:1,scheduleHour:8};
     let editingRuleId = null, editorRuleCategory = '个人规则';
     const ruleEventLinks = {campaign:'R-202609-018',child:'R-202609-011',promoted:'R-202609-004','term-child':'R-202608-019'};
     eventData.forEach(e=>{e.ruleId=ruleEventLinks[e.id]||`R-DEMO-${e.id}`;e.checkId=`CHK-${e.ruleId}-${e.checkTime.replace(/\D/g,'')}`});
     const checkData = eventData.map(e=>({id:e.checkId,ruleId:e.ruleId,frequency:e.frequency,time:e.checkTime,status:'success'}));
-    function frequencyLabel(config){const base=FREQUENCY_LABELS[config.frequency]||'每天';return config.frequency==='weekly'?`${base} · ${WEEK_LABELS[config.weekDay??1]}`:config.frequency==='monthly'?`${base} · ${config.monthDay||1}号`:base}
+    function frequencyLabel(config){const base=FREQUENCY_LABELS[config.frequency]||'每天',time=hourLabel(config.scheduleHour??8);return config.frequency==='hourly'?base:config.frequency==='weekly'?`${base} · ${WEEK_LABELS[config.weekDay??1]} ${time}`:config.frequency==='monthly'?`${base} · ${config.monthDay||1}号 ${time}`:`${base} · ${time}`}
     function parseBeijingTime(value){return new Date(value.replace(' ','T')+(value.length===16?':00':'')+'+08:00')}
     function beijingDate(value){return new Date(value.getTime()+8*3600000).toISOString().slice(0,10)}
     function formatBeijingTime(value){return new Date(value.getTime()+8*3600000).toISOString().slice(0,19).replace('T',' ')}
@@ -584,7 +587,7 @@
     function currentEventResults(events=eventData,checks=checkData,now=DEMO_NOW,configs=ruleData){const latest=new Map(),active=new Map(configs.map(rule=>[rule.id,rule]));for(const check of checks){const frequency=active.get(check.ruleId)?.frequency||check.frequency;if(check.status!=='success'||!inDisplayWindow(check.time,frequency,now))continue;const previous=latest.get(check.ruleId);if(!previous||parseBeijingTime(check.time)>parseBeijingTime(previous.time))latest.set(check.ruleId,check)}return events.filter(e=>e.visible!==false&&['pending','confirmed','resolved'].includes(e.status)&&latest.get(e.ruleId)?.id===e.checkId)}
     function nextScheduleTime(config,now=DEMO_NOW){
       if(config.frequency==='hourly')return new Date((Math.floor(now.getTime()/3600000)+1)*3600000);
-      const local=new Date(now.getTime()+8*3600000),year=local.getUTCFullYear(),month=local.getUTCMonth(),day=local.getUTCDate(),hour=config.scheduleHour??9;
+      const local=new Date(now.getTime()+8*3600000),year=local.getUTCFullYear(),month=local.getUTCMonth(),day=local.getUTCDate(),hour=config.scheduleHour??8;
       const at=(y,m,d)=>new Date(Date.UTC(y,m,d,hour)-8*3600000);
       if(config.frequency==='daily'){const candidate=at(year,month,day);return candidate>now?candidate:at(year,month,day+1)}
       if(config.frequency==='weekly'){let offset=((config.weekDay??1)-local.getUTCDay()+7)%7;let candidate=at(year,month,day+offset);return candidate>now?candidate:at(year,month,day+offset+7)}
@@ -597,12 +600,15 @@
     function renderRuleSchedule(){
       $('#ruleFrequencyControl').innerHTML=customSelectMarkup('ruleFrequencySelect','rule-frequency',ruleSchedule.frequency,Object.entries(FREQUENCY_LABELS).map(([value,label])=>({value,label,disabled:value==='hourly'&&!hasHourlyConfiguredMetric(),reason:value==='hourly'?'仅当已配置小时级字段时可选':''})));
       $('#ruleFrequencyEligibilityHint').textContent=hasHourlyConfiguredMetric()?'已配置小时级字段，可选择每小时；也可以选择每天、每周或每月。':'未配置小时级字段，暂不支持每小时；可以选择每天、每周或每月。';
-      const weekly=ruleSchedule.frequency==='weekly',monthly=ruleSchedule.frequency==='monthly';$('#ruleScheduleDetail').classList.toggle('hidden',!weekly&&!monthly);
-      if(weekly||monthly){$('#ruleScheduleDetailLabel').textContent=weekly?'执行星期':'执行日期';$('#ruleScheduleDetailControl').innerHTML=weekly?customSelectMarkup('ruleWeekDaySelect','rule-weekday',ruleSchedule.weekDay,[1,2,3,4,5,6,0].map(value=>({value:String(value),label:WEEK_LABELS[value]}))):customSelectMarkup('ruleMonthDaySelect','rule-monthday',ruleSchedule.monthDay,Array.from({length:31},(_,i)=>({value:String(i+1),label:`${i+1}号`})));$('#ruleScheduleDetailHint').textContent=weekly?'每周在所选星期的日级调度时间执行，默认周一。':'每月在所选日期执行，默认1号；当月没有该日期时，在月末执行。'}
+      const hourly=ruleSchedule.frequency==='hourly',weekly=ruleSchedule.frequency==='weekly',monthly=ruleSchedule.frequency==='monthly';$('#ruleScheduleDetail').classList.toggle('hidden',!weekly&&!monthly);
+      $('#ruleScheduleTime').classList.toggle('hidden',hourly);
+      $('#ruleScheduleTimeControl').innerHTML=hourly?'':customSelectMarkup('ruleHourSelect','rule-hour',ruleSchedule.scheduleHour,EXECUTION_HOURS.map(value=>({value:String(value),label:hourLabel(value)})));
+      $('#ruleScheduleDetailControl').innerHTML='';$('#ruleScheduleDetailHint').textContent='';
+      if(weekly||monthly){$('#ruleScheduleDetailLabel').textContent=weekly?'执行星期':'执行日期';$('#ruleScheduleDetailControl').innerHTML=weekly?customSelectMarkup('ruleWeekDaySelect','rule-weekday',ruleSchedule.weekDay,[1,2,3,4,5,6,0].map(value=>({value:String(value),label:WEEK_LABELS[value]}))):customSelectMarkup('ruleMonthDaySelect','rule-monthday',ruleSchedule.monthDay,Array.from({length:31},(_,i)=>({value:String(i+1),label:`${i+1}号`})));$('#ruleScheduleDetailHint').textContent=weekly?'每周在所选星期和时间执行，默认周一。':'每月在所选日期和时间执行，默认1号；当月没有该日期时，在月末执行。'}
       updateScheduleHint();
     }
     function updateScheduleHint(){if($('#scheduleHint'))$('#scheduleHint').innerHTML=`<span>◷</span><span>规则按<strong>${frequencyLabel(ruleSchedule)}</strong>执行；指标各自的数据时间范围与截止时间保持独立。发布及修改在下一个计划调度点生效。</span>`}
-    function setRuleSchedule(kind,value){if(kind==='rule-frequency'&&value==='hourly'&&!hasHourlyConfiguredMetric()){showToast('请先在预警条件中配置小时级字段');renderRuleSchedule();return}if(kind==='rule-frequency'){if(ruleSchedule.frequency!==value){ruleSchedule.frequency=value;ruleSchedule.weekDay=1;ruleSchedule.monthDay=1}}else if(kind==='rule-weekday')ruleSchedule.weekDay=Number(value);else ruleSchedule.monthDay=Number(value);renderRuleSchedule();markTrialRunStale()}
+    function setRuleSchedule(kind,value){if(kind==='rule-frequency'&&value==='hourly'&&!hasHourlyConfiguredMetric()){showToast('请先在预警条件中配置小时级字段');renderRuleSchedule();return}if(kind==='rule-frequency'){if(ruleSchedule.frequency!==value){ruleSchedule.frequency=value;ruleSchedule.weekDay=1;ruleSchedule.monthDay=1}}else if(kind==='rule-weekday')ruleSchedule.weekDay=Number(value);else if(kind==='rule-monthday')ruleSchedule.monthDay=Number(value);else if(kind==='rule-hour'){const hour=Number(value);if(!EXECUTION_HOURS.includes(hour))return;ruleSchedule.scheduleHour=hour}renderRuleSchedule();markTrialRunStale()}
     // 模拟“根据指标编号查询指标定义”接口的返回结果；时间窗口直接使用接口提供的固定描述。
     const metricDefinitionResponse = {
       F1:{object:'广告活动',name:'是否超预算',timeWindow:'当天更新'},F2:{object:'广告活动',name:'预算缺失率',timeWindow:'近7个完整日'},F3:{object:'广告活动',name:'ACOS',timeWindow:'近7个完整日'},F4:{object:'广告活动',name:'目标ACOS',timeWindow:'用户自定义配置'},
@@ -629,7 +635,7 @@
     const ALERT_OBJECT_LABELS={PARENT_ASIN:'父 ASIN',CHILD_ASIN:'子 ASIN',AD_CAMPAIGN:'广告活动',PROMOTED_CHILD_ASIN:'推广品子 ASIN',TARGETING:'投放词',SEARCH_TERM_PARENT_ASIN:'搜索词＋父 ASIN',SEARCH_TERM_CHILD_ASIN:'搜索词＋子 ASIN'};
     const ALERT_OBJECTS=Object.fromEntries(Object.entries(ALERT_OBJECT_LABELS).map(([code,label])=>[code,{code,label,allowedStatisticalObjectTypes:[]}]))
     const STAT_OBJECTS={};
-    const EMBEDDED_FIELD_CATALOG=JSON.parse(document.getElementById('field-catalog-data').textContent);
+    const FIELD_API_BASE_URL=window.ALERT_FIELD_API_BASE_URL||'http://127.0.0.1:8787';
     const OPERATOR_LABELS={EQ:'=',NE:'≠',GT:'>',GTE:'≥',LT:'<',LTE:'≤',BETWEEN:'区间',IN:'包含',NOT_IN:'不包含'};
     const typeOperators={百分比:'≥、>、≤、<、=、≠、区间',金额:'≥、>、≤、<、=、≠、区间',数值:'≥、>、≤、<、=、≠、区间',天数:'≥、>、≤、<、=、≠、区间',布尔:'等于',枚举:'包含、不包含'};
     let currentStep=1, currentEvent='campaign', resolveMode='single', currentRuleObject='AD_CAMPAIGN', currentAlertType='广告效能', catalogViewingObject='AD_CAMPAIGN', activeMetricCategory='全部', catalogIntent={mode:'browse'}, pendingRuleAction={mode:'',ids:[]}, trialRunStatus='idle', trialRunInProgress=false, ruleEditorMode='create';
@@ -645,9 +651,9 @@
         {id:'C5',fieldId:'2.3-017',statObjectType:'AD_CAMPAIGN',operator:'LTE',compareMode:'METRIC',compareFieldId:'2.3-066',compareStatObjectType:'AD_CAMPAIGN',coefficient:'1.0'}
       ]}
     ];
-    let objectValueFilterState={objectValue:'',dimensionType:'',dimensionValue:''};
+    let objectValueFilterState={objectValue:'',dimensionType:'',dimensionValue:''},fieldCatalogRequestSerial=0;
     const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-    const statusLabels={pending:'待确认',confirmed:'已确认',resolved:'已解决'};
+    const statusLabels={pending:'待确认',resolved:'已解决'};
     function setFieldApiStatus(state,label){const status=$('#fieldApiStatus');if(!status)return;status.className=`api-status ${state}`;status.textContent=label;status.title='使用页面内置指标目录，点击可重新加载'}
     function renderFieldApiUnavailable(copy='正在加载内置指标目录…'){
       $('#conditionScopeCopy').textContent=`当前预警对象：${ALERT_OBJECT_LABELS[currentRuleObject]} · 加载指标中`;
@@ -863,12 +869,13 @@
     function resolveEvent(){if(resolveMode==='batch'){const selected=selectedEventIds().map(id=>eventData.find(e=>e.id===id)),failed=selected.filter(e=>e.writeDenied),eligible=selected.filter(e=>!e.writeDenied&&!(e.status==='resolved'));eligible.forEach(e=>{e.status='resolved';e.statusText='已解决'});closeResolveModal();refreshDistributions();if(failed.length)showBatchResult(eligible.length,failed);else{renderEvents();updateSelection();showToast(`已解决 ${eligible.length} 条事件`)}return}const e=eventData.find(x=>x.id===currentEvent);if(e.writeDenied){closeResolveModal();showToast('操作失败：该对象权限已变化，请刷新结果');return}e.status='resolved';e.statusText='已解决';$('#drawerStatus').textContent=e.statusText;updateDrawerActions(e);closeResolveModal();renderEvents();refreshDistributions();showToast('事件已解决，并记录处理原因')}
     function sendChat(){const input=$('#chatInput'),text=input.value.trim(),session=sessionForId(viewedChatSessionId),state=ensureEventChats(chatEvent());if(!text||!session||session.id!==state.currentSessionId||session.status==='running')return;session.messages.push({role:'user',text});if(session.messages.filter(message=>message.role==='user').length===1)session.title=text.length>16?text.slice(0,16)+'…':text;session.draft='';session.status='running';session.finishAt=Date.now()+25000;saveEventChats();renderChatSession(session);scheduleChatTask(session)}
     function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-    function openEditor(edit=false,category='个人规则',id=null){ruleEditorMode=edit?'edit':'create';editingRuleId=edit?id:null;editorRuleCategory=category;const rule=ruleData.find(item=>item.id===editingRuleId);ruleSchedule=rule?{frequency:rule.frequency,weekDay:rule.weekDay??1,monthDay:rule.monthDay||1}:{frequency:'daily',weekDay:1,monthDay:1};if(rule)$('#ruleNameInput').value=rule.name;renderRuleSchedule();$('#rulesPage').classList.remove('active');$('#resultsPage').classList.remove('active');$('#editorPage').classList.add('active');$('#mainTabs').classList.add('hidden');$('#editorTitle').textContent=edit?'编辑预警规则':`新建${category}`;resetTrialRun();setRuleStep(1);const content=$('.content');if(content)content.scrollTop=0}
+    function openEditor(edit=false,category='个人规则',id=null){ruleEditorMode=edit?'edit':'create';editingRuleId=edit?id:null;editorRuleCategory=category;const rule=ruleData.find(item=>item.id===editingRuleId);ruleSchedule=rule?{frequency:rule.frequency,weekDay:rule.weekDay??1,monthDay:rule.monthDay||1,scheduleHour:rule.scheduleHour??8}:{frequency:'daily',weekDay:1,monthDay:1,scheduleHour:8};if(rule)$('#ruleNameInput').value=rule.name;renderRuleSchedule();$('#rulesPage').classList.remove('active');$('#resultsPage').classList.remove('active');$('#editorPage').classList.add('active');$('#mainTabs').classList.add('hidden');$('#editorTitle').textContent=edit?'编辑预警规则':`新建${category}`;resetTrialRun();setRuleStep(1);const content=$('.content');if(content)content.scrollTop=0}
     function closeEditor(){$('#editorPage').classList.remove('active');$('#rulesPage').classList.add('active');$('#mainTabs').classList.remove('hidden');$$('#mainTabs .tab').forEach(t=>t.classList.toggle('active',t.dataset.tab==='rules'))}
     function setRuleStep(n){$$('.rule-step').forEach(step=>{const stepNumber=Number(step.dataset.step),current=stepNumber===n;step.classList.toggle('is-current',current);step.classList.toggle('is-finished',stepNumber<n);if(current)step.setAttribute('aria-current','step');else step.removeAttribute('aria-current')})}
     function scrollToEditorSection(n){const section=$(`#editorStep${n}`);if(section){setRuleStep(n);section.scrollIntoView({behavior:'smooth',block:'start'})}}
     function validateRuleConfig(){
       if(!FREQUENCY_LABELS[ruleSchedule.frequency]||(ruleSchedule.frequency==='weekly'&&(!Number.isInteger(ruleSchedule.weekDay)||ruleSchedule.weekDay<0||ruleSchedule.weekDay>6))||(ruleSchedule.frequency==='monthly'&&(!Number.isInteger(ruleSchedule.monthDay)||ruleSchedule.monthDay<1||ruleSchedule.monthDay>31)))return{ok:false,message:'请补全有效的规则频率及执行日期',step:3};
+      if(ruleSchedule.frequency!=='hourly'&&!EXECUTION_HOURS.includes(ruleSchedule.scheduleHour))return{ok:false,message:'请选择 08:00–23:00 的执行整点（含 08:00）',step:3};
       if(!$('#ruleNameInput').value.trim())return{ok:false,message:'请填写规则名称',step:1};
       if(!alertObject().allowedStatisticalObjectTypes.length)return{ok:false,message:'指标尚未加载，请点击重新加载',step:2};
       if(ruleSchedule.frequency==='hourly'&&!hasHourlyConfiguredMetric())return{ok:false,message:'仅当预警条件包含小时级字段时，才支持每小时检查',step:3};
@@ -951,7 +958,7 @@
     function confirmPublishRule(){const validation=validateRuleConfig();if(!validation.ok){showToast(validation.message);return}const rule=ruleData.find(item=>item.id===editingRuleId);if(rule){requestRuleChange(rule,'edit');rule.pendingConfig={...ruleSchedule,name:$('#ruleNameInput').value.trim()}}else{const schedule={...ruleSchedule};ruleData.push({id:`R-DEMO-${Date.now()}`,name:$('#ruleNameInput').value.trim(),version:'V1',status:'enabled',object:alertObject().label,category:editorRuleCategory,level:$('#editorStep1 .option.selected strong').textContent,levelClass:({'机会':'chance','关注':'watch','预警':'alert'})[$('#editorStep1 .option.selected strong').textContent],type:currentAlertType,...schedule,runState:'unrun',runText:'待首次运行',runTime:'',creator:'杨修瑛',pendingAction:{kind:'enable',effectiveAt:formatBeijingTime(nextScheduleTime(schedule))}})}renderRules();$('#publishConfirmPhase').classList.add('hidden');$('#publishSuccessPhase').classList.remove('hidden')}
     function closeEditorSelects(except=null){$$('.custom-select.open').forEach(select=>{if(select!==except){select.classList.remove('open');select.querySelector('.custom-select-trigger')?.setAttribute('aria-expanded','false')}})}
     function toggleEditorSelect(event,select){event.stopPropagation();const willOpen=!select.classList.contains('open');closeRuleFilters();$$('.multi-filter').forEach(item=>item.classList.remove('open'));$('#objectValueFilterWrap').classList.remove('open');closeEditorSelects(select);select.classList.toggle('open',willOpen);select.querySelector('.custom-select-trigger').setAttribute('aria-expanded',String(willOpen))}
-    function chooseEditorSelectOption(event,option){event.stopPropagation();if(option.disabled||option.getAttribute('aria-disabled')==='true')return;const select=option.closest('.custom-select'),value=option.dataset.value,label=option.dataset.label||option.textContent.trim(),kind=select.dataset.kind,groupId=select.dataset.groupId,conditionId=select.dataset.conditionId;select.querySelectorAll('.custom-select-option').forEach(item=>item.classList.toggle('selected',item===option));select.querySelector('.custom-select-label').textContent=label;select.classList.add('has-value');closeEditorSelects();if(['rule-frequency','rule-weekday','rule-monthday'].includes(kind)){setRuleSchedule(kind,value);return}if(kind==='rule-object'){if(value!==currentRuleObject)changeRuleObject(value);return}if(kind==='rule-type'){currentAlertType=value;markTrialRunStale();return}if(kind==='condition-operator'){setConditionOperator(groupId,conditionId,value);return}if(kind==='condition-value'){setConditionValue(groupId,conditionId,value);return}if(kind==='comparison-mode')changeComparisonMode(groupId,conditionId,value)}
+    function chooseEditorSelectOption(event,option){event.stopPropagation();if(option.disabled||option.getAttribute('aria-disabled')==='true')return;const select=option.closest('.custom-select'),value=option.dataset.value,label=option.dataset.label||option.textContent.trim(),kind=select.dataset.kind,groupId=select.dataset.groupId,conditionId=select.dataset.conditionId;select.querySelectorAll('.custom-select-option').forEach(item=>item.classList.toggle('selected',item===option));select.querySelector('.custom-select-label').textContent=label;select.classList.add('has-value');closeEditorSelects();if(['rule-frequency','rule-weekday','rule-monthday','rule-hour'].includes(kind)){setRuleSchedule(kind,value);return}if(kind==='rule-object'){if(value!==currentRuleObject)changeRuleObject(value);return}if(kind==='rule-type'){currentAlertType=value;markTrialRunStale();return}if(kind==='condition-operator'){setConditionOperator(groupId,conditionId,value);return}if(kind==='condition-value'){setConditionValue(groupId,conditionId,value);return}if(kind==='comparison-mode')changeComparisonMode(groupId,conditionId,value)}
     function chooseOption(el){el.parentElement.querySelectorAll('.option').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');markTrialRunStale()}
     function alertObject(){return ALERT_OBJECTS[currentRuleObject]}
     function getField(statObjectType,fieldId){return STAT_OBJECTS[statObjectType]&&STAT_OBJECTS[statObjectType].fields.find(field=>field.id===fieldId)}
