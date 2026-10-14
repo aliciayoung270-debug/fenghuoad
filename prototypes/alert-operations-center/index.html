@@ -301,7 +301,7 @@
                       <div class="flow-card"><i>3</i><b>选择比较对象</b><span>数值类指标可选择固定值或另一个指标</span></div>
                       <div class="flow-card"><i>4</i><b>填写值或系数</b><span>指标比较时自动校验单位、对象关系与币种</span></div>
                     </div>
-                    <div class="condition-toolbar"><div class="condition-toolbar-copy" id="conditionScopeCopy"></div><div class="condition-toolbar-actions"><button class="api-status loading" id="fieldApiStatus" onclick="syncFieldCatalog(currentRuleObject,{notify:true})" title="点击重新加载内置指标">加载演示指标中</button><button class="btn small" onclick="openMetricCatalog(null,'browse')">查看可用指标与枚举</button><button class="btn small" id="addGroupBtn" onclick="addGroup()">＋ 添加条件组</button></div></div>
+                    <div class="condition-toolbar"><div class="condition-toolbar-copy" id="conditionScopeCopy"></div><div class="condition-toolbar-actions"><span class="api-status connected" id="fieldApiStatus" title="使用内置示例指标，可直接选择">示例指标</span><button class="btn small" onclick="openMetricCatalog(null,'browse')">查看可用指标与枚举</button><button class="btn small" id="addGroupBtn" onclick="addGroup()">＋ 添加条件组</button></div></div>
                     <div id="conditionGroups"></div>
                   </div>
                   <div class="editor-step" id="editorStep3" data-feature-id="F020">
@@ -509,7 +509,7 @@
       "pageIds": [
         "P003"
       ],
-      "summary": "静态托管版直接读取页面内置的七类指标目录，无需后端服务；保留指标编号、类型、枚举、时间窗口、对象关系和可比较指标。"
+      "summary": "静态托管版启动时直接初始化页面内置的七类示例指标目录，不请求接口，断网也可创建规则、切换对象、搜索选择指标、配置条件和模拟试运行；保留指标编号、类型、枚举、时间窗口、对象关系和可比较指标。"
     },
     {
       "id": "F016",
@@ -633,9 +633,10 @@
       resolved:[{conditionId:'C1',left:{metricId:'F1',value:true},operator:'EQ',right:{type:'fixed',value:true},result:true}],
     };
     const ALERT_OBJECT_LABELS={PARENT_ASIN:'父 ASIN',CHILD_ASIN:'子 ASIN',AD_CAMPAIGN:'广告活动',PROMOTED_CHILD_ASIN:'推广品子 ASIN',TARGETING:'投放词',SEARCH_TERM_PARENT_ASIN:'搜索词＋父 ASIN',SEARCH_TERM_CHILD_ASIN:'搜索词＋子 ASIN'};
-    const ALERT_OBJECTS=Object.fromEntries(Object.entries(ALERT_OBJECT_LABELS).map(([code,label])=>[code,{code,label,allowedStatisticalObjectTypes:[]}]))
-    const STAT_OBJECTS={};
-    const FIELD_API_BASE_URL=window.ALERT_FIELD_API_BASE_URL||'http://127.0.0.1:8787';
+    // 静态原型直接使用内置演示指标，离线可用，不依赖任何字段接口。
+    const EMBEDDED_FIELD_CATALOG=JSON.parse(document.getElementById('field-catalog-data').textContent);
+    const ALERT_OBJECTS=Object.fromEntries(EMBEDDED_FIELD_CATALOG.alertObjects.map(object=>[object.code,object]));
+    const STAT_OBJECTS=EMBEDDED_FIELD_CATALOG.statisticalObjects;
     const OPERATOR_LABELS={EQ:'=',NE:'≠',GT:'>',GTE:'≥',LT:'<',LTE:'≤',BETWEEN:'区间',IN:'包含',NOT_IN:'不包含'};
     const typeOperators={百分比:'≥、>、≤、<、=、≠、区间',金额:'≥、>、≤、<、=、≠、区间',数值:'≥、>、≤、<、=、≠、区间',天数:'≥、>、≤、<、=、≠、区间',布尔:'等于',枚举:'包含、不包含'};
     let currentStep=1, currentEvent='campaign', resolveMode='single', currentRuleObject='AD_CAMPAIGN', currentAlertType='广告效能', catalogViewingObject='AD_CAMPAIGN', activeMetricCategory='全部', catalogIntent={mode:'browse'}, pendingRuleAction={mode:'',ids:[]}, trialRunStatus='idle', trialRunInProgress=false, ruleEditorMode='create';
@@ -651,36 +652,16 @@
         {id:'C5',fieldId:'2.3-017',statObjectType:'AD_CAMPAIGN',operator:'LTE',compareMode:'METRIC',compareFieldId:'2.3-066',compareStatObjectType:'AD_CAMPAIGN',coefficient:'1.0'}
       ]}
     ];
-    let objectValueFilterState={objectValue:'',dimensionType:'',dimensionValue:''},fieldCatalogRequestSerial=0;
+    let objectValueFilterState={objectValue:'',dimensionType:'',dimensionValue:''};
     const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
     const statusLabels={pending:'待确认',resolved:'已解决'};
-    function setFieldApiStatus(state,label){const status=$('#fieldApiStatus');if(!status)return;status.className=`api-status ${state}`;status.textContent=label;status.title='使用页面内置指标目录，点击可重新加载'}
-    function renderFieldApiUnavailable(copy='正在加载内置指标目录…'){
-      $('#conditionScopeCopy').textContent=`当前预警对象：${ALERT_OBJECT_LABELS[currentRuleObject]} · 加载指标中`;
-      $('#conditionGroups').innerHTML=`<div class="condition-empty"><b>${escapeHtml(copy)}</b>点击指标状态按钮可重新加载。</div>`;
-      $('#addGroupBtn').disabled=true;
-      updateRuleActionAvailability();
-    }
-    async function syncFieldCatalog(alertObjectType,{notify=false}={}){
-      try{
-        const object=EMBEDDED_FIELD_CATALOG.alertObjects.find(item=>item.code===alertObjectType);
-        if(!object)throw new Error('不支持的预警对象');
-        const objects=object.allowedStatisticalObjectTypes.map(code=>EMBEDDED_FIELD_CATALOG.statisticalObjects[code]);
-        if(objects.some(item=>!item||!Array.isArray(item.fields)))throw new Error('内置指标目录不完整');
-        ALERT_OBJECTS[object.code]=object;
-        objects.forEach(item=>{STAT_OBJECTS[item.code]=item});
-        catalogViewingObject=object.allowedStatisticalObjectTypes[0];
-        setFieldApiStatus('connected','演示指标已就绪');
-        renderConditionGroups();
-        if($('#metricCatalogModal').classList.contains('open'))renderMetricCatalog();
-        if(notify)showToast(`已加载${object.label}内置指标`);
-        return true;
-      }catch(error){
-        console.warn('内置指标加载失败。',error);
-        setFieldApiStatus('error','指标加载失败 · 点击重试');
-        renderFieldApiUnavailable('内置指标加载失败');
-        return false;
-      }
+    function syncFieldCatalog(alertObjectType){
+      const object=ALERT_OBJECTS[alertObjectType];
+      if(!object)return false;
+      catalogViewingObject=object.allowedStatisticalObjectTypes[0];
+      renderConditionGroups();
+      if($('#metricCatalogModal').classList.contains('open'))renderMetricCatalog();
+      return true;
     }
     const ruleFilterState={status:'',category:'',creators:[],objects:[],levels:[],types:[]};
     function closeRuleFilters(){$$('.rule-filter').forEach(item=>item.classList.remove('open'))}
@@ -877,7 +858,7 @@
       if(!FREQUENCY_LABELS[ruleSchedule.frequency]||(ruleSchedule.frequency==='weekly'&&(!Number.isInteger(ruleSchedule.weekDay)||ruleSchedule.weekDay<0||ruleSchedule.weekDay>6))||(ruleSchedule.frequency==='monthly'&&(!Number.isInteger(ruleSchedule.monthDay)||ruleSchedule.monthDay<1||ruleSchedule.monthDay>31)))return{ok:false,message:'请补全有效的规则频率及执行日期',step:3};
       if(ruleSchedule.frequency!=='hourly'&&!EXECUTION_HOURS.includes(ruleSchedule.scheduleHour))return{ok:false,message:'请选择 08:00–23:00 的执行整点（含 08:00）',step:3};
       if(!$('#ruleNameInput').value.trim())return{ok:false,message:'请填写规则名称',step:1};
-      if(!alertObject().allowedStatisticalObjectTypes.length)return{ok:false,message:'指标尚未加载，请点击重新加载',step:2};
+      if(!alertObject().allowedStatisticalObjectTypes.length)return{ok:false,message:'请选择有效的预警对象',step:2};
       if(ruleSchedule.frequency==='hourly'&&!hasHourlyConfiguredMetric())return{ok:false,message:'仅当预警条件包含小时级字段时，才支持每小时检查',step:3};
       if(!ruleConditionGroups.length)return{ok:false,message:'请至少添加一个完整条件组',step:2};
       for(const group of ruleConditionGroups){
@@ -1014,11 +995,11 @@
       $('#addGroupBtn').disabled=!stats.length||ruleConditionGroups.length>=3||conditionCount()>=10;
       updateRuleScheduleAvailability();
     }
-    async function changeRuleObject(value){
+    function changeRuleObject(value){
       markTrialRunStale();currentRuleObject=value;catalogViewingObject='';ruleConditionGroups=[];
       updateRuleScheduleAvailability();
-      showToast(`已切换为${alertObject().label}，正在加载对应字段`);
-      await syncFieldCatalog(value)
+      syncFieldCatalog(value);
+      showToast(`已切换为${alertObject().label}，可直接选择示例指标`)
     }
     function setConditionOperator(groupId,conditionId,value){const condition=ruleConditionGroups.find(group=>group.id===groupId)?.conditions.find(item=>item.id===conditionId);if(condition){condition.operator=value;markTrialRunStale()}}
     function setConditionValue(groupId,conditionId,value){const condition=ruleConditionGroups.find(group=>group.id===groupId)?.conditions.find(item=>item.id===conditionId);if(condition){condition.value=value;markTrialRunStale()}}
@@ -1030,7 +1011,7 @@
     function addCondition(groupId){if(conditionCount()>=10){showToast('每条规则最多10个条件');return}openMetricPicker('newCondition',groupId)}
     function openMetricCatalog(control,mode='browse'){openMetricPicker(mode)}
     function openMetricPicker(mode,groupId='',conditionId='',role='left'){
-      if(!alertObject().allowedStatisticalObjectTypes.length){showToast('指标尚未加载，请点击重新加载');return}
+      if(!alertObject().allowedStatisticalObjectTypes.length){showToast('请选择有效的预警对象');return}
       catalogIntent={mode,groupId,conditionId,role};
       const allowed=alertObject().allowedStatisticalObjectTypes;
       if(role==='compare'){
@@ -1082,7 +1063,6 @@
     function refreshHistory(){const button=$('#historyRefreshBtn'),status=$('#historyRefreshStatus');if(button.classList.contains('is-refreshing'))return;button.classList.add('is-refreshing');button.disabled=true;status.textContent='正在刷新…';setTimeout(()=>{button.classList.remove('is-refreshing');button.disabled=false;status.textContent='刚刚更新'},350)}
     function showToast(text){const t=$('#toast');t.textContent=text;t.classList.add('show');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.classList.remove('show'),2200)}
     renderRuleSchedule();
-    renderFieldApiUnavailable();
     renderEvents();
     renderRuleCreatorOptions();
     renderRules();
